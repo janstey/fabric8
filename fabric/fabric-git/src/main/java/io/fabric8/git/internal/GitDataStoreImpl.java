@@ -134,10 +134,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     private static final transient Logger LOGGER = LoggerFactory.getLogger(GitDataStoreImpl.class);
 
-
     private static final String GIT_REMOTE_USER = "gitRemoteUser";
     private static final String GIT_REMOTE_PASSWORD = "gitRemotePassword";
     private static final String GIT_GC_ON_LOAD = "gitGcOnLoad";
+    private static final String GIT_FAIR_LOCK = "gitFairLock";
+    private static final String GIT_LOCK_TIMEOUT = "gitLockTimeout";
     private static final int GIT_COMMIT_SHORT_LENGTH = 7;
     private static final int MAX_COMMITS_WITHOUT_GC = 40;
     private static final long AQUIRE_LOCK_TIMEOUT = 25 * 1000L;
@@ -161,9 +162,9 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private final ScheduledExecutorService threadPool = Executors.newSingleThreadScheduledExecutor();
 
     private final ImportExportHandler importExportHandler = new ImportExportHandler();
-    private final GitDataStoreListener gitListener = new GitDataStoreListener();
-    private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    private final GitDataStoreListener gitListener = new GitDataStoreListener();    
     private final boolean strictLockAssert = true;
+    private ReentrantReadWriteLock readWriteLock;
 
     private int commitsWithoutGC = MAX_COMMITS_WITHOUT_GC;
     private Map<String, String> dataStoreProperties;
@@ -183,7 +184,11 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     private long gitRemotePollInterval = 60 * 1000L;
     @Property(name = GIT_GC_ON_LOAD, label = "Run Git GC", description = "Whether or not to run Git GC on load of the Git repo", boolValue = false)
     private boolean gitGcOnLoad = false;
-    
+    @Property(name = GIT_FAIR_LOCK, label = "Use fair locking", description = "Whether or not to use fair locking when accessing the Git repo. Fair locking has a large performance hit but is better in environments with high contention.", boolValue = false)
+    private boolean gitFairLock = false;
+    @Property(name = GIT_LOCK_TIMEOUT, label = "Git lock timeout", description = "Timeout in milliseconds to acquire a lock on the Git repo.", longValue = AQUIRE_LOCK_TIMEOUT)
+    private long gitLockTimeout = AQUIRE_LOCK_TIMEOUT;
+        
     private final LoadingCache<String, Version> versionCache = CacheBuilder.newBuilder().build(new VersionCacheLoader());
     private final Set<String> versions = new HashSet<String>();
 
@@ -399,10 +404,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public LockHandle aquireWriteLock() {
-        final WriteLock writeLock = readWriteLock.writeLock();
+        final WriteLock writeLock = getReadWriteLock().writeLock();
         boolean success;
         try {
-            success = writeLock.tryLock() || writeLock.tryLock(AQUIRE_LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            success = writeLock.tryLock() || writeLock.tryLock(gitLockTimeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ex) {
             success = false;
         }
@@ -410,7 +415,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
         return new LockHandle() {
             @Override
             public void unlock() {
-                if (notificationRequired && readWriteLock.getWriteHoldCount() == 1) {
+                if (notificationRequired && getReadWriteLock().getWriteHoldCount() == 1) {
                     try {
                         dataStore.get().fireChangeNotifications();
                     } finally {
@@ -424,10 +429,10 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
 
     @Override
     public LockHandle aquireReadLock() {
-        final ReadLock readLock = readWriteLock.readLock();
+        final ReadLock readLock = getReadWriteLock().readLock();
         boolean success;
         try {
-            success = readLock.tryLock() || readLock.tryLock(AQUIRE_LOCK_TIMEOUT, TimeUnit.MILLISECONDS);
+            success = readLock.tryLock() || readLock.tryLock(gitLockTimeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ex) {
             success = false;
         }
@@ -1183,7 +1188,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private void assertReadLock() {
-        boolean locked = readWriteLock.getReadHoldCount() > 0 || readWriteLock.isWriteLockedByCurrentThread();
+        boolean locked = getReadWriteLock().getReadHoldCount() > 0 || getReadWriteLock().isWriteLockedByCurrentThread();
         IllegalStateAssertion.assertTrue(!strictLockAssert || locked, "No read lock obtained");
         if (!locked) { 
             LOGGER.warn("No read lock obtained");
@@ -1191,7 +1196,7 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
 
     private void assertWriteLock() {
-        boolean locked = readWriteLock.isWriteLockedByCurrentThread();
+        boolean locked = getReadWriteLock().isWriteLockedByCurrentThread();
         IllegalStateAssertion.assertTrue(!strictLockAssert || locked, "No write lock obtained");
         if (!locked) {
             LOGGER.warn("No write lock obtained");
@@ -1299,6 +1304,17 @@ public final class GitDataStoreImpl extends AbstractComponent implements GitData
     }
     void unbindRuntimeProperties(RuntimeProperties service) {
         this.runtimeProperties.unbind(service);
+    }
+
+    protected ReentrantReadWriteLock getReadWriteLock() {
+        if (readWriteLock == null) {
+            readWriteLock = new ReentrantReadWriteLock(gitFairLock);
+        }
+        return readWriteLock;
+    }
+
+    protected void setReadWriteLock(ReentrantReadWriteLock readWriteLock) {
+        this.readWriteLock = readWriteLock;
     }
 
     class GitDataStoreListener implements GitListener {
