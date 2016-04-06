@@ -152,7 +152,7 @@
         <bndlib-version>2.4.0</bndlib-version>
         <bouncycastle-version>1.52</bouncycastle-version>
         <camel-version-range>[2.15,3)</camel-version-range>
-        <camel-version>2.16.1.redhat-630045</camel-version>
+        <camel-version>2.17.0.redhat-630-SNAPSHOT</camel-version>
         <cassandra-version>2.0.7</cassandra-version>
         <codehaus-plexus-interpolation-version>1.19</codehaus-plexus-interpolation-version>
         <codehaus-plexus-version>1.5.5</codehaus-plexus-version>
@@ -237,7 +237,8 @@
         <http-core-version>4.4.1</http-core-version>
         <influxdb-version>1.2</influxdb-version>
         <jackson-version>1.9.12</jackson-version>
-        <jackson2-version>2.6.3</jackson2-version>
+        <jackson2-scala-version>2.6.3</jackson2-scala-version>
+        <jackson2-version>2.7.2</jackson2-version>
         <jackson-module-scala-version>2.1.5_3</jackson-module-scala-version>
         <jansi-version>1.11</jansi-version>
         <jasypt-smx-version>1.9.3.redhat_2</jasypt-smx-version>
@@ -1781,26 +1782,61 @@
                 <version>${mvel-version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson2-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson2-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson2-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.jaxrs</groupId>
-                <artifactId>jackson-jaxrs-json-provider</artifactId>
-                <version>${jackson2-version}</version>
-            </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-cbor</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-smile</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-joda</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.jaxrs</groupId>
+            <artifactId>jackson-jaxrs-base</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.jaxrs</groupId>
+            <artifactId>jackson-jaxrs-json-provider</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-jaxb-annotations</artifactId>
+            <version>${jackson2-version}</version>
+          </dependency>
 
             <dependency>
                 <groupId>org.apache.geronimo.specs</groupId>
